@@ -23,7 +23,6 @@ _CURLY = {'{', '}'}
 _BRACKET = {'[', ']'}
 
 
-
 def parse_jsh_argv(argv):
     """Attempt to parse the argv for a ``--jsh-request=<json rpc>``
 
@@ -57,28 +56,8 @@ def parse_jsh_request(reqstr):
         raise ValueError("Unknown json blob: {}".format(repr(reqstr)))
 
 
-
-def request(method, params=None):
-    payload = {
-        JSONRPC: "2.0",
-        METHOD: method,
-    }
-
-    if params:
-        payload["params"] = params
-
-    return payload
-
-
-def error(code, message, data=None):
-    return {
-        CODE: code,
-        MESSAGE: message,
-        DATA: data,
-    }
-
-
 class Serializable:
+    """An object that can call serialize() to be json serializable."""
     def serialize(self):
         raise TypeError("Must override serialize")
 
@@ -121,6 +100,28 @@ class Error(Exception, Serializable):
         return error(code=self.code, message=self.message, data=self.data)
 
 
+
+def request(method, params=None):
+    payload = {
+        JSONRPC: "2.0",
+        METHOD: method,
+    }
+
+    if params:
+        payload["params"] = params
+
+    return payload
+
+
+def error(code, message, data=None):
+    return {
+        CODE: code,
+        MESSAGE: message,
+        DATA: data,
+    }
+
+
+
 def log(msg, lvl=ERROR):
     """Log the message at appropriate lvl to stderr and return the object."""
     payload = log_payload(msg, lvl=lvl)
@@ -136,17 +137,36 @@ def log_payload(msg, lvl=None, data=None):
     return out
 
 
-def load_jsh(socket):
-    """Iteratively load jsh objects from a socket.
+def dump_stdout(payload):
+    """Dump a python object to stdout as json with a newline."""
+    if isinstance(payload, Serializable):
+        payload = payload.serialize()
+    sys.stdout.write(json.dumps(payload))
+    sys.stdout.write('\n')
+
+
+def dump_stderr(payload):
+    """Dump a python object to stderr as json with a newline."""
+    if isinstance(payload, Serializable):
+        payload = payload.serialize()
+    sys.stderr.write(json.dumps(payload))
+    sys.stderr.write('\n')
+
+
+def load_json_iter(stream):
+    """Iteratively load json objects from a stream.
     """
-    for slist in _load_jsh_strlist(socket):
+    if isinstance(stream, str):
+        stream = io.StringIO(stream)
+
+    for slist in _load_json_striter(stream):
         valuestr = ''.join(slist)
         value = json.loads(valuestr)
         yield value
 
 
-def _load_jsh_strlist(socket):
-    """Load jsh strings from a socket."""
+def _load_json_striter(stream):
+    """Load jsh strings from a stream."""
     alltext = []
 
     ignore_next = False
@@ -163,8 +183,7 @@ def _load_jsh_strlist(socket):
         return text, 0
 
 
-    # import pdb; pdb.set_trace()
-    for text in socket:
+    for text in stream:
         i = 0
         while i < len(text):
             c = text[i]
@@ -231,18 +250,3 @@ def _load_jsh_strlist(socket):
 
     if alltext:
         yield alltext
-
-
-
-def dump_stderr(payload):
-    if isinstance(payload, Serializable):
-        payload = payload.serialize()
-    sys.stderr.write(json.dumps(payload))
-    sys.stderr.write('\n')
-
-
-def dump_stdout(payload):
-    if isinstance(payload, Serializable):
-        payload = payload.serialize()
-    sys.stdout.write(json.dumps(payload))
-    sys.stdout.write('\n')

@@ -28,8 +28,9 @@ ls --jsh-request $(jsh m=ls --all=true --path='"/foo/bar"')
 In addition to this, JSH requires the following when the `--jsh-request` is passed:
 - **MUST** output valid json on stdout _UNLESS_ a documented application
   defined flag in `params` or `method` specifies otherwise.
-  - If outputing multiple 'results' (i.e. list of files, results of search, etc), **MuST**
-    output one record followed by the null character `\0`.
+  - If outputing multiple 'results' (i.e. list of files, results of search, etc), **MUST**
+    output them as separate records separated by newlines `\n`
+  - These can be iteratively injsested by `jshlib.load_jsh`
 - **SHOULD** output structured logs to stderr, one json record per line, in the form:
 
 
@@ -48,6 +49,36 @@ However, it's purpose is broader reaching:
 - Allow for shell scripts to quickly be "hosted".
   - Trivial to make them work via web requests, allowing faster and cleaner
     sysadmin interfaces.
+
+
+# Usage and API
+
+```bash
+pip install jshlib
+```
+
+## `jsh` cmdline tool
+Comes with cmdline tool `jsh` which can:
+
+- Create `json-rpc` request for use with JSH compliant commands.
+- (future) format json to be more human readable
+- (future) create well-formatted tables for certain formats of output
+
+
+## jshlib python library
+
+The following functions and types are essential:
+
+- `parse_jsh_argv`: parses the `argv` cmdline arguments for JSH compliance
+- `Request` and `Error` objects, which represent the appropriate JSON-RPC objects.
+- `dump_stdout` and `dump_stderr` for dumping python objects (dict, list, int, etc)
+  to the respective output.
+- `load_json_iter` will continuously load json objects from a stream (i.e.
+  stdin, stdout, file socket, etc). This allows for semi-performantly chaining
+  jsh tools, assuming that each one outputs its "records" as they becomes
+  available.
+
+It is planned to support more languages ASAP.
 
 
 # License

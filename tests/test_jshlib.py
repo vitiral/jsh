@@ -7,22 +7,22 @@ import jshlib
 
 class TestLoadJsh(unittest.TestCase):
     def test_nums(self):
-        s = io.StringIO("42 31 2.343")
-        result = list(jshlib.load_jsh(s))
+        s = "42 31 2.343"
+        result = list(jshlib.load_json_iter(s))
         expected = [42, 31, 2.343]
         assert expected == result
 
     def test_strs(self):
         data = '"hi" "b o"\n"LU"'
         s = io.StringIO(data)
-        result = list(jshlib.load_jsh(s))
+        result = list(jshlib.load_json_iter(s))
         expected = ["hi", "b o", 'LU']
         assert expected == result
 
     def test_escape(self):
         data = r'"hi\"U"'
         s = io.StringIO(data)
-        result = list(jshlib.load_jsh(s))
+        result = list(jshlib.load_json_iter(s))
         expected = ['hi"U']
         assert expected == result
 
@@ -32,7 +32,7 @@ class TestLoadJsh(unittest.TestCase):
         ["yo", "bob"]
         '''
         s = io.StringIO(data)
-        result = list(jshlib.load_jsh(s))
+        result = list(jshlib.load_json_iter(s))
         expected = [
             [1,2,3],
             ["yo", "bob"],
@@ -45,7 +45,7 @@ class TestLoadJsh(unittest.TestCase):
         ["yo", ["yo", "yo"]]
         '''
         s = io.StringIO(data)
-        result = list(jshlib.load_jsh(s))
+        result = list(jshlib.load_json_iter(s))
         expected = [
             [1,2,[42,3]],
             ["yo", ["yo", "yo"]],
@@ -62,7 +62,7 @@ class TestLoadJsh(unittest.TestCase):
         }
         '''
         s = io.StringIO(data)
-        result = list(jshlib.load_jsh(s))
+        result = list(jshlib.load_json_iter(s))
         expected = [
             {
                 "one": 1,
