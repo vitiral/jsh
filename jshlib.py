@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import sys
 import json
 import traceback
 
@@ -10,6 +11,8 @@ JSONRPC = 'jsonrpc'
 JSONRPC_VALUE = '2.0'
 PARAMS = 'params'
 
+INFO = 'INFO'
+ERROR = 'ERROR'
 
 def parse_jsh_argv(argv):
     """Attempt to parse the argv for a ``--jsh_request=<json rpc>``
@@ -101,3 +104,24 @@ class Error(Exception):
 
     def serialize(self):
         return error(code=self.code, message=self.message, data=self.data)
+
+
+def log(msg, level=ERROR):
+    payload = log_payload(msg, level=level)
+    ewrite_payload(payload)
+    return payload
+
+
+def log_payload(msg, level=None, data=None):
+    level = ERROR if level is None else level
+    return {'level': level, "msg": msg, "data": data}
+
+
+def ewrite_payload(payload):
+    sys.stderr.write(json.dumps(payload))
+    sys.stderr.write('\n')
+
+
+def write_payload(payload):
+    sys.stdout.write(json.dumps(payload))
+    sys.stdout.write('\n')

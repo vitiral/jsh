@@ -4,6 +4,7 @@ import unittest
 import subprocess
 import json
 import jshlib
+from pprint import pprint
 
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
@@ -26,7 +27,10 @@ def call_jsh(args):
 
     stdout, stderr = p.communicate()
 
-    return json.loads(stdout), convert_stderr(stderr)
+    print(stderr)
+    errors = convert_stderr(stderr)
+
+    return json.loads(stdout), errors
 
 
 class TestJsh(unittest.TestCase):

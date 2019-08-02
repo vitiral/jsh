@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import sys
 import itertools
 import json
+import jshlib
 
 if sys.version_info[0] == 2:
     DecodeError = ValueError
@@ -15,46 +16,11 @@ else:
     DecodeError = json.JSONDecodeError
 
 
-INFO = 'INFO'
-ERROR = 'ERROR'
-METHOD = "method"
-PARAMS = "params"
-
-INVALID_PARAMS = -32602
-INTERNAL_ERROR = -32603
-
-def log(msg, level=ERROR):
-    payload = log_payload(msg, level=level)
-    ewrite_payload(payload)
-    return payload
-
-
-def log_payload(msg, level=None, data=None):
-    level = ERROR if level is None else level
-    return {'level': level, "msg": msg, "data": data}
-
-
-def ewrite_payload(payload):
-    sys.stderr.write(json.dumps(payload))
-    sys.stderr.write('\n')
-
-
-def write_payload(payload):
-    sys.stdout.write(json.dumps(payload))
-    sys.stdout.write('\n')
-
-
 def error_obj(argv, code, message, data=None):
     if data is None:
         data = {}
-
     data['argv'] = argv
-
-    return {
-        "code": code,
-        "message": message,
-        "data": data,
-    }
+    return jshlib.Error(code=code, message=message, data=data).serialize()
 
 
 def parse_arg(arg):
@@ -62,21 +28,23 @@ def parse_arg(arg):
     if arg.startswith("--"):
         param_value = arg.split('=', 1)
         if len(param_value) != 2:
-            return ERROR, "params must be of the form --key=<json string>. Got: {}".format(arg)
+            msg = "params must be of the form --key=<json string>. Got: {}".format(arg)
+            return jshlib.ERROR, msg
 
         param, valuestr = param_value
         param = param[2:]
         try:
             value = json.loads(valuestr)
         except DecodeError as e:
-            return ERROR, "param '{}' with value=<{}> did not parse: {}".format(param, valuestr, e)
+            msg = "param '{}' with value=<{}> did not parse: {}".format(param, valuestr, e)
+            return jshlib.ERROR, msg
 
-        return PARAMS, (param, value)
+        return jshlib.PARAMS, (param, value)
 
     if arg.startswith('rpc.'):
-        return ERROR, "method must not start with \'rpc.\': {}".format(arg)
+        return jshlib.ERROR, "method must not start with \'rpc.\': {}".format(arg)
 
-    return METHOD, arg
+    return jshlib.METHOD, arg
 
 
 def main(argv):
@@ -87,13 +55,13 @@ def main(argv):
 
     for arg in itertools.islice(argv, 1, None):
         ty, obj = parse_arg(arg)
-        if ty is METHOD:
+        if ty is jshlib.METHOD:
             if method is None:
                 method = obj
             else:
                 errors.append(
                     log("Found a second method specified: {}".format(obj)))
-        elif ty is PARAMS:
+        elif ty is jshlib.PARAMS:
             param, value = obj
 
             if param in params:
@@ -101,16 +69,16 @@ def main(argv):
                     log('found at least two params with same key: {}'.format(param)))
             else:
                 params[param] = value
-        elif ty is ERROR:
+        elif ty is jshlib.ERROR:
             errors.append(log(obj))
         else:
             err = error_obj(
                 argv=argv,
-                code=INTERNAL_ERROR,
+                code=jshlib.Error.INTERNAL_ERROR,
                 message="unknown type",
                 data={'type': ty},
             )
-            write_payload(err)
+            jshlib.write_payload(err)
             return 1
 
     if not method:
@@ -119,22 +87,16 @@ def main(argv):
     if errors:
         err = error_obj(
             argv=argv,
-            code=INVALID_PARAMS,
+            code=jshlib.Error.INVALID_PARAMS,
             message="errors encountered when parsing arguments",
             data={"errors": errors}
         )
-        write_payload(err)
+        jshlib.write_payload(err)
         return 2
 
-    payload = {
-        "jsonrpc": "2.0",
-        "method": method,
-    }
+    request = jshlib.Request(method=method, params=params)
 
-    if params:
-        payload['params'] = params
-
-    write_payload(payload)
+    jshlib.write_payload(request.serialize())
     return 0
 
 
