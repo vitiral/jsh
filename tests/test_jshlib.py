@@ -34,7 +34,7 @@ class TestLoadJsh(unittest.TestCase):
         s = io.StringIO(data)
         result = list(jshlib.load_json_iter(s))
         expected = [
-            [1,2,3],
+            [1, 2, 3],
             ["yo", "bob"],
         ]
         assert expected == result
@@ -47,7 +47,7 @@ class TestLoadJsh(unittest.TestCase):
         s = io.StringIO(data)
         result = list(jshlib.load_json_iter(s))
         expected = [
-            [1,2,[42,3]],
+            [1, 2, [42, 3]],
             ["yo", ["yo", "yo"]],
         ]
         assert expected == result
@@ -68,8 +68,7 @@ class TestLoadJsh(unittest.TestCase):
                 "one": 1,
                 "string": "foo",
                 "bool": True,
-                "list": [1,2,3],
+                "list": [1, 2, 3],
             },
         ]
         assert expected == result
-

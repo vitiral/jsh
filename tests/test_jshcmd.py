@@ -20,7 +20,6 @@ def convert_stderr(stderr):
     return errors
 
 
-
 def call_jsh(args):
     args = [JSH] + args
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -57,7 +56,9 @@ class TestJsh(unittest.TestCase):
             "boolean": True,
             "string": "foo bar",
             "int": 42,
-            "list": ["one", 2, 3.0, [4], {"five": True}],
+            "list": ["one", 2, 3.0, [4], {
+                "five": True
+            }],
         }
         expected = jshlib.request(method='foo-bar', params=params)
         assert expected == result
@@ -149,9 +150,11 @@ class TestJsh(unittest.TestCase):
 
         expected_logs = [
             {
-                'lvl': 'ERROR',
-                'msg': "param 'bad' with value=<'foo'> did not parse:"
-                    + " No JSON object could be decoded",
+                'lvl':
+                'ERROR',
+                'msg':
+                "param 'bad' with value=<'foo'> did not parse:" +
+                " No JSON object could be decoded",
             },
         ]
 

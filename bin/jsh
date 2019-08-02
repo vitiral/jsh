@@ -16,7 +16,6 @@
 # Unless you explicitly state otherwise, any contribution intentionally submitted
 # for inclusion in the work by you, as defined in the Apache-2.0 license, shall
 # be dual licensed as above, without any additional terms or conditions.
-
 """
 The jsh commandline interface.
 
@@ -56,7 +55,8 @@ def parse_arg(arg):
     if arg.startswith("--"):
         param_value = arg.split('=', 1)
         if len(param_value) != 2:
-            msg = "params must be of the form --key=<json string>. Got: {}".format(arg)
+            msg = "params must be of the form --key=<json string>. Got: {}".format(
+                arg)
             return jshlib.ERROR, msg
 
         param, valuestr = param_value
@@ -64,7 +64,8 @@ def parse_arg(arg):
         try:
             value = json.loads(valuestr)
         except DecodeError as e:
-            msg = "param '{}' with value=<{}> did not parse: {}".format(param, valuestr, e)
+            msg = "param '{}' with value=<{}> did not parse: {}".format(
+                param, valuestr, e)
             return jshlib.ERROR, msg
 
         return jshlib.PARAMS, (param, value)
@@ -72,7 +73,8 @@ def parse_arg(arg):
     if arg.startswith('m=') or arg.startswith('method='):
         _, method = arg.split('=', 1)
         if method.startswith('rpc.'):
-            return jshlib.ERROR, "method must not start with \'rpc.\': {}".format(arg)
+            return jshlib.ERROR, "method must not start with \'rpc.\': {}".format(
+                arg)
         return jshlib.METHOD, method
 
     return jshlib.ERROR, HELP
@@ -93,7 +95,8 @@ def _main(argv):
         err = error_obj(
             argv=argv,
             code=jshlib.Error.INVALID_PARAMS,
-            message="jsh does not ITSELF support --jsh-request, you silly beast")
+            message="jsh does not ITSELF support --jsh-request, you silly beast"
+        )
         jshlib.dump_stdout(err)
         return 1
 
@@ -104,13 +107,16 @@ def _main(argv):
                 method = obj
             else:
                 errors.append(
-                    jshlib.log("Found a extra method specified: {}".format(obj)))
+                    jshlib.log(
+                        "Found a extra method specified: {}".format(obj)))
         elif ty is jshlib.PARAMS:
             param, value = obj
 
             if param in params:
                 errors.append(
-                    jshlib.log('found at least two params with same key: {}'.format(param)))
+                    jshlib.log(
+                        'found at least two params with same key: {}'.format(
+                            param)))
             else:
                 params[param] = value
         elif ty is jshlib.ERROR:
@@ -129,12 +135,10 @@ def _main(argv):
         errors.append(jshlib.log("no method found"))
 
     if errors:
-        err = error_obj(
-            argv=argv,
-            code=jshlib.Error.INVALID_PARAMS,
-            message="errors encountered when parsing arguments",
-            data={"errors": errors}
-        )
+        err = error_obj(argv=argv,
+                        code=jshlib.Error.INVALID_PARAMS,
+                        message="errors encountered when parsing arguments",
+                        data={"errors": errors})
         jshlib.dump_stdout(err)
         return 1
 

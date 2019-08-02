@@ -48,7 +48,8 @@ def parse_jsh_request(reqstr):
     elif CODE in req:
         code = req[CODE]
         if MESSAGE not in req:
-            raise ValueError("Error must have message: {}".format(repr(reqstr)))
+            raise ValueError("Error must have message: {}".format(
+                repr(reqstr)))
         message = req[MESSAGE]
         data = req.get(DATA)
         return Error(code=code, message=message, data=data)
@@ -100,7 +101,6 @@ class Error(Exception, Serializable):
         return error(code=self.code, message=self.message, data=self.data)
 
 
-
 def request(method, params=None):
     payload = {
         JSONRPC: "2.0",
@@ -119,7 +119,6 @@ def error(code, message, data=None):
         MESSAGE: message,
         DATA: data,
     }
-
 
 
 def log(msg, lvl=ERROR):
@@ -178,10 +177,9 @@ def _load_json_striter(stream):
 
     def consolodate_result(alltext, text, i):
         """Consolodate the result into alltext and return what was excluded."""
-        include, text = text[:i+1], text[i+1:]
+        include, text = text[:i + 1], text[i + 1:]
         alltext.append(include)
         return text, 0
-
 
     for text in stream:
         i = 0
@@ -211,7 +209,8 @@ def _load_json_striter(stream):
 
                 open_string = not open_string
 
-            elif c in _DIGITS and not (open_string or open_bracket or open_curly):
+            elif c in _DIGITS and not (open_string or open_bracket
+                                       or open_curly):
                 is_digits = True
 
             elif c in _BRACKET and not (open_string or open_curly):
@@ -241,7 +240,6 @@ def _load_json_striter(stream):
                         alltext = []
                         open_curly = False
                         continue
-
 
             i += 1
 
