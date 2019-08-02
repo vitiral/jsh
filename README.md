@@ -1,9 +1,9 @@
-# jsh: json rpc shell commands
+# jsh: JSON-RPC standards for the shell
 
 `jsh` refers to both:
- - JSH: a standard protocl for "shell scripts" to be able to talk to eachother
+ - JSH: a standard protocol for "shell scripts" to be able to talk to eachother
    in a manner similar to JSON-RPC, along with a `jshlib.py` single-file python
-   library.
+   library reference implementation.
  - `jsh`: a cmdline tool for converting standard shell-like arguments
    into json.
 
@@ -27,11 +27,14 @@ ls --jsh-request $(jsh m=ls --all=true --path='"/foo/bar"')
 
 In addition to this, JSH requires the following when the `--jsh-request` is passed:
 - **MUST** output valid json on stdout _UNLESS_ a documented application
-  defined flag in `params` or `method` specifies otherwise.
-  - If outputing multiple 'results' (i.e. list of files, results of search, etc), **MUST**
+  defined flag in `params` or `method` specifies otherwise (i.e. Method vs
+  MethodBinary)
+  - If outputing multiple 'results' (i.e. list of files, results of search,
+    etc), **MUST**
     output them as separate records separated by newlines `\n`
   - These can be iteratively injsested by `jshlib.load_jsh`
-- **SHOULD** output structured logs to stderr, one json record per line, in the form:
+- **SHOULD** output structured logs to stderr, one json record per line, in the
+  form (other keys are allowed)
 
 
 ```json
