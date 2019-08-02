@@ -4,18 +4,19 @@ The jsh commandline interface.
 
 Use jshlib for the library to create your own JSH applicaitons.
 """
-from __future__ import print_function
-
+from __future__ import unicode_literals
 import sys
 import itertools
 import json
 
-print(sys.argv)
+if sys.version_info[0] == 2:
+    DecodeError = ValueError
+else:
+    DecodeError = json.JSONDecodeError
 
 
 INFO = 'INFO'
 ERROR = 'ERROR'
-ERROR = 'CRITICAL'
 METHOD = "method"
 PARAMS = "params"
 
@@ -59,15 +60,16 @@ def error_obj(argv, code, message, data=None):
 def parse_arg(arg):
     """Parse the argument and return (type, value)"""
     if arg.startswith("--"):
-        param_value = arg.split('=', maxsplit=1)
+        param_value = arg.split('=', 1)
         if len(param_value) != 2:
             return ERROR, "params must be of the form --key=<json string>. Got: {}".format(arg)
-        param, jsonstr = param_value
 
+        param, valuestr = param_value
+        param = param[2:]
         try:
-            value = json.loads(jsonstr)
-        except json.SONDecodeError as e:
-            return ERROR, 'arg {} did not parse: {}'.format(arg, e)
+            value = json.loads(valuestr)
+        except DecodeError as e:
+            return ERROR, "param '{}' with value=<{}> did not parse: {}".format(param, valuestr, e)
 
         return PARAMS, (param, value)
 
@@ -83,7 +85,7 @@ def main(argv):
     method = None
     params = {}
 
-    for arg in itertools.islice(argv, 1, -1):
+    for arg in itertools.islice(argv, 1, None):
         ty, obj = parse_arg(arg)
         if ty is METHOD:
             if method is None:
@@ -92,7 +94,7 @@ def main(argv):
                 errors.append(
                     log("Found a second method specified: {}".format(obj)))
         elif ty is PARAMS:
-            param, value = ty
+            param, value = obj
 
             if param in params:
                 errors.append(
@@ -124,11 +126,15 @@ def main(argv):
         write_payload(err)
         return 2
 
-    write_payload({
+    payload = {
         "jsonrpc": "2.0",
         "method": method,
-        "params": params,
-    })
+    }
+
+    if params:
+        payload['params'] = params
+
+    write_payload(payload)
     return 0
 
 
