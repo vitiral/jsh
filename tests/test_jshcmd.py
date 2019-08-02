@@ -53,5 +53,3 @@ class TestJsh(unittest.TestCase):
         expected = jshlib.request(method='foo-bar', params=params)
         assert expected == result
         assert [] == logs
-
-
