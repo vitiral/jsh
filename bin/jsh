@@ -23,6 +23,9 @@ Use this at the command line. See HELP for more details.
 
 Use jshlib.py for the library to create your own JSH applications.
 """
+
+# pylint: disable=invalid-name
+
 from __future__ import unicode_literals
 import sys
 import itertools
@@ -44,6 +47,7 @@ else:
 
 
 def error_obj(argv, code, message, data=None):
+    """Construct an error including argv."""
     if data is None:
         data = {}
     data['argv'] = argv
@@ -80,6 +84,7 @@ def parse_arg(arg):
     return jshlib.ERROR, HELP
 
 
+# pylint: disable=too-many-branches
 def _main(argv):
     errors = []
 
@@ -91,7 +96,6 @@ def _main(argv):
         return 1
 
     if len(argv) > 1 and argv[1] == jshlib.ARGV_JSH_REQUEST:
-        # TODO: support a range of functionality through this interface
         err = error_obj(
             argv=argv,
             code=jshlib.Error.INVALID_PARAMS,
@@ -149,9 +153,10 @@ def _main(argv):
 
 
 def main(argv):
+    """Main cmdline interface."""
     try:
         return _main(argv)
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         err = jshlib.Error.internal_exc(e)
         jshlib.dump_stdout(err)
         return 1

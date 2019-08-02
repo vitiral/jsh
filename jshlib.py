@@ -1,3 +1,24 @@
+# jsh: JSON-RPC standards for the shell
+#
+# Copyright (C) 2019 Rett Berg <github.com/vitiral>
+#
+# The source code is Licensed under either of
+#
+# * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
+#   http://www.apache.org/licenses/LICENSE-2.0)
+# * MIT license ([LICENSE-MIT](LICENSE-MIT) or
+#   http://opensource.org/licenses/MIT)
+#
+# at your option.
+#
+# Unless you explicitly state otherwise, any contribution intentionally submitted
+# for inclusion in the work by you, as defined in the Apache-2.0 license, shall
+# be dual licensed as above, without any additional terms or conditions.
+"""
+jsh: JSON-RPC standards for the shell
+"""
+# pylint: disable=invalid-name,too-few-public-methods
+
 from __future__ import unicode_literals
 import sys
 import json
@@ -26,7 +47,8 @@ _BRACKET = {'[', ']'}
 def parse_jsh_argv(argv):
     """Attempt to parse the argv for a ``--jsh-request=<json rpc>``
 
-    returns: Request if the request exists or None if it does not.
+    returns: Request if the request exists, Error if it is an Error,
+      or None if --jsh-request does not exist.
     raise: ValueError if the request is invalid.
     """
     for arg in argv:
@@ -38,14 +60,19 @@ def parse_jsh_argv(argv):
 
 
 def parse_jsh_request(reqstr):
+    """Attempt to parse a string as a JSON-RPC object.
+
+    returns: Request if the request exists, Error if it is an Error.
+    raise: ValueError if the request is invalid.
+    """
     req = json.loads(reqstr)
     if METHOD in req:
         jsonrpc_value = req.get(JSONRPC, JSONRPC_VALUE)
         if jsonrpc_value != JSONRPC_VALUE:
             raise ValueError("Invalid jsonrpc value: {}".format(jsonrpc_value))
-        params = req.get(PARAMS)
-        return Request(method=method, params=params)
-    elif CODE in req:
+        return Request(method=req[METHOD], params=req.get(PARAMS))
+
+    if CODE in req:
         code = req[CODE]
         if MESSAGE not in req:
             raise ValueError("Error must have message: {}".format(
@@ -53,26 +80,35 @@ def parse_jsh_request(reqstr):
         message = req[MESSAGE]
         data = req.get(DATA)
         return Error(code=code, message=message, data=data)
-    else:
-        raise ValueError("Unknown json blob: {}".format(repr(reqstr)))
+
+    raise ValueError("Unknown json blob: {}".format(repr(reqstr)))
 
 
 class Serializable:
     """An object that can call serialize() to be json serializable."""
+
+    # pylint: disable=no-self-use
     def serialize(self):
+        """Convert to basic python types."""
         raise TypeError("Must override serialize")
 
 
 class Request(Serializable):
+    """Standard JSON-RPC Request object."""
     def __init__(self, method, params):
         self.method = method
         self.params = params
 
     def serialize(self):
+        """Convert to basic python types."""
         return request(method=self.method, params=self.params)
 
 
 class Error(Exception, Serializable):
+    """JSON-RPC error.
+
+    Can also be used to construct a python error for JSON-RPC.
+    """
     PARSE_ERROR = -32700
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601
@@ -102,6 +138,7 @@ class Error(Exception, Serializable):
 
 
 def request(method, params=None):
+    """Create a standard JSON-RPC Request object."""
     payload = {
         JSONRPC: "2.0",
         METHOD: method,
@@ -114,6 +151,7 @@ def request(method, params=None):
 
 
 def error(code, message, data=None):
+    """Create a standard JSON-RPC Error object."""
     return {
         CODE: code,
         MESSAGE: message,
@@ -129,6 +167,7 @@ def log(msg, lvl=ERROR):
 
 
 def log_payload(msg, lvl=None, data=None):
+    """Create a standard log payload object."""
     lvl = ERROR if lvl is None else lvl
     out = {'lvl': lvl, "msg": msg}
     if data:
@@ -164,6 +203,8 @@ def load_json_iter(stream):
         yield value
 
 
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-branches
 def _load_json_striter(stream):
     """Load jsh strings from a stream."""
     alltext = []
