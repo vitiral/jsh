@@ -13,7 +13,7 @@ JSH = os.path.join(REPO, 'bin', 'jsh')
 
 def convert_stderr(stderr):
     errors = []
-    for line in stderr.split('\n'):
+    for line in stderr.split(b'\n'):
         line = line.strip()
         if line:
             errors.append(json.loads(line))
