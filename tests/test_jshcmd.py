@@ -64,7 +64,7 @@ class TestJsh(unittest.TestCase):
         assert [] == logs
         assert rc == 0
 
-    def test_no_method(self):
+    def test_no_method_error(self):
         rc, result, logs = call_jsh([
             '--boolean=true',
         ])
@@ -73,6 +73,85 @@ class TestJsh(unittest.TestCase):
             {
                 'lvl': 'ERROR',
                 'msg': 'no method found'
+            },
+        ]
+
+        expected = {
+            jshlib.CODE: jshlib.Error.INVALID_PARAMS,
+            jshlib.MESSAGE: 'errors encountered when parsing arguments',
+        }
+        result_logs = error_pop_data_logs(result)
+
+        assert expected == result
+        assert expected_logs == result_logs
+        assert expected_logs == logs
+        assert rc == 1
+
+    def test_extra_methods_error(self):
+        rc, result, logs = call_jsh([
+            'one',
+            'two',
+            'three',
+        ])
+
+        expected_logs = [
+            {
+                'lvl': 'ERROR',
+                'msg': 'Found a extra method specified: two'
+            },
+            {
+                'lvl': 'ERROR',
+                'msg': 'Found a extra method specified: three'
+            },
+        ]
+
+        expected = {
+            jshlib.CODE: jshlib.Error.INVALID_PARAMS,
+            jshlib.MESSAGE: 'errors encountered when parsing arguments',
+        }
+        result_logs = error_pop_data_logs(result)
+
+        assert expected == result
+        assert expected_logs == result_logs
+        assert expected_logs == logs
+        assert rc == 1
+
+    def test_overlapping_params_error(self):
+        rc, result, logs = call_jsh([
+            'method',
+            '--boolean=true',
+            '--boolean=false',
+        ])
+
+        expected_logs = [
+            {
+                'lvl': 'ERROR',
+                'msg': 'found at least two params with same key: boolean'
+            },
+        ]
+
+        expected = {
+            jshlib.CODE: jshlib.Error.INVALID_PARAMS,
+            jshlib.MESSAGE: 'errors encountered when parsing arguments',
+        }
+        result_logs = error_pop_data_logs(result)
+
+        assert expected == result
+        assert expected_logs == result_logs
+        assert expected_logs == logs
+        assert rc == 1
+
+    def test_bad_json_error(self):
+        rc, result, logs = call_jsh([
+            'method',
+            '--bad=\'foo\'',
+        ])
+
+        expected_logs = [
+            {
+                'lvl': 'ERROR',
+                'msg': "param 'bad' with value=<'foo'> did not parse:"
+                    + " No JSON object could be decoded",
             },
         ]
 

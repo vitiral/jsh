@@ -60,7 +60,7 @@ def _main(argv):
                 method = obj
             else:
                 errors.append(
-                    jshlib.log("Found a second method specified: {}".format(obj)))
+                    jshlib.log("Found a extra method specified: {}".format(obj)))
         elif ty is jshlib.PARAMS:
             param, value = obj
 
