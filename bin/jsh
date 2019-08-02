@@ -47,7 +47,7 @@ def parse_arg(arg):
     return jshlib.METHOD, arg
 
 
-def main(argv):
+def _main(argv):
     errors = []
 
     method = None
@@ -92,7 +92,7 @@ def main(argv):
             data={"errors": errors}
         )
         jshlib.write_payload(err)
-        return 2
+        return 1
 
     request = jshlib.Request(method=method, params=params)
 
@@ -100,6 +100,15 @@ def main(argv):
     return 0
 
 
+def main(argv):
+    try:
+        _main(argv)
+    except Exception as e:
+        err = jshlib.Error.internal_exc(e)
+        jshlib.write_payload(err.serialize())
+        return 1
+
+
 if __name__ == '__main__':
-    main(sys.argv)
+    sys.exit(main(sys.argv))
 
