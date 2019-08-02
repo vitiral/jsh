@@ -39,7 +39,7 @@ def error_pop_data_logs(error):
 
 class TestJsh(unittest.TestCase):
     def test_method(self):
-        rc, result, logs = call_jsh(['foo'])
+        rc, result, logs = call_jsh(['method=foo'])
         expected = jshlib.request('foo')
         assert expected == result
         assert [] == logs
@@ -47,7 +47,7 @@ class TestJsh(unittest.TestCase):
 
     def test_simple_params(self):
         rc, result, logs = call_jsh([
-            'foo-bar',
+            'm=foo-bar',
             '--boolean=true',
             '--string="foo bar"',
             '--int=42',
@@ -89,9 +89,9 @@ class TestJsh(unittest.TestCase):
 
     def test_extra_methods_error(self):
         rc, result, logs = call_jsh([
-            'one',
-            'two',
-            'three',
+            'm=one',
+            'm=two',
+            'm=three',
         ])
 
         expected_logs = [
@@ -118,7 +118,7 @@ class TestJsh(unittest.TestCase):
 
     def test_overlapping_params_error(self):
         rc, result, logs = call_jsh([
-            'method',
+            'm=method',
             '--boolean=true',
             '--boolean=false',
         ])
@@ -143,7 +143,7 @@ class TestJsh(unittest.TestCase):
 
     def test_bad_json_error(self):
         rc, result, logs = call_jsh([
-            'method',
+            'method=method',
             '--bad=\'foo\'',
         ])
 

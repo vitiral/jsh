@@ -41,10 +41,15 @@ def parse_arg(arg):
 
         return jshlib.PARAMS, (param, value)
 
-    if arg.startswith('rpc.'):
-        return jshlib.ERROR, "method must not start with \'rpc.\': {}".format(arg)
+    if arg.startswith('m=') or arg.startswith('method='):
+        _, method = arg.split('=', 1)
 
-    return jshlib.METHOD, arg
+        if method.startswith('rpc.'):
+            return jshlib.ERROR, "method must not start with \'rpc.\': {}".format(arg)
+
+        return jshlib.METHOD, method
+
+    return jshlib.ERROR, "Usage: jsh m=<method> ['--param1=\"value\"'] ..."
 
 
 def _main(argv):
