@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 import sys
 import json
 import traceback
+import io
 
+ARGV_JSH_REQUEST = '--jsh-request'
 
 CODE = 'code'
 DATA = 'data'
@@ -15,14 +17,21 @@ PARAMS = 'params'
 INFO = 'INFO'
 ERROR = 'ERROR'
 
+_DIGITS = {str(n) for n in range(10)}
+_DIGITS.add('.')
+_CURLY = {'{', '}'}
+_BRACKET = {'[', ']'}
+
+
+
 def parse_jsh_argv(argv):
-    """Attempt to parse the argv for a ``--jsh_request=<json rpc>``
+    """Attempt to parse the argv for a ``--jsh-request=<json rpc>``
 
     returns: Request if the request exists or None if it does not.
     raise: ValueError if the request is invalid.
     """
     for arg in argv:
-        if arg.startswith('--jsh_request='):
+        if arg.startswith(ARGV_JSH_REQUEST):
             _, reqstr = arg.split('=', 1)
             return parse_jsh_request(reqstr)
 
@@ -72,8 +81,6 @@ def error(code, message, data=None):
 class Serializable:
     def serialize(self):
         raise TypeError("Must override serialize")
-
-
 
 
 class Request(Serializable):
@@ -127,6 +134,104 @@ def log_payload(msg, lvl=None, data=None):
     if data:
         out['data'] = data
     return out
+
+
+def load_jsh(socket):
+    """Iteratively load jsh objects from a socket.
+    """
+    for slist in _load_jsh_strlist(socket):
+        valuestr = ''.join(slist)
+        value = json.loads(valuestr)
+        yield value
+
+
+def _load_jsh_strlist(socket):
+    """Load jsh strings from a socket."""
+    alltext = []
+
+    ignore_next = False
+    open_curly = False
+    open_bracket = False
+    open_string = False
+    is_digits = False
+    brackets = 0
+
+    def consolodate_result(alltext, text, i):
+        """Consolodate the result into alltext and return what was excluded."""
+        include, text = text[:i+1], text[i+1:]
+        alltext.append(include)
+        return text, 0
+
+
+    # import pdb; pdb.set_trace()
+    for text in socket:
+        i = 0
+        while i < len(text):
+            c = text[i]
+
+            if ignore_next:
+                ignore_next = False
+            elif c == '\\':
+                ignore_next = True
+            elif is_digits is True and c not in _DIGITS:
+                # We found a Number
+                text, i = consolodate_result(alltext, text, i)
+                yield alltext
+                alltext = []
+                is_digits = False
+                continue
+            elif c == '"':
+                if not (open_curly or open_bracket):
+                    if open_string:
+                        # We found a String
+                        text, i = consolodate_result(alltext, text, i)
+                        yield alltext
+                        alltext = []
+                        open_string = False
+                        continue
+
+                open_string = not open_string
+
+            elif c in _DIGITS and not (open_string or open_bracket or open_curly):
+                is_digits = True
+
+            elif c in _BRACKET and not (open_string or open_curly):
+                if c == '[':
+                    open_bracket = True
+                    brackets += 1
+                elif c == ']':
+                    brackets -= 1
+                    if brackets == 0:
+                        # We found a List
+                        text, i = consolodate_result(alltext, text, i)
+                        yield alltext
+                        alltext = []
+                        open_bracket = False
+                        continue
+
+            elif c in _CURLY and not (open_string or open_bracket):
+                if c == '{':
+                    open_curly = True
+                    brackets += 1
+                elif c == '}':
+                    brackets -= 1
+                    if brackets == 0:
+                        # We found an Object
+                        text, i = consolodate_result(alltext, text, i)
+                        yield alltext
+                        alltext = []
+                        open_curly = False
+                        continue
+
+
+            i += 1
+
+        if text.strip():
+            alltext.append(text)
+
+    if alltext:
+        yield alltext
+
 
 
 def dump_stderr(payload):

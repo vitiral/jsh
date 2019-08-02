@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+import io
 import sys
+import json
+import time
 
 sys.stdout.write("argv: {}\n".format(sys.argv))
+
+print(repr(sys.stdin.read()))
+print(repr(sys.stdin.read()))
