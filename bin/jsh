@@ -12,17 +12,126 @@ import json
 
 print(sys.argv)
 
-method = None
-params = {}
-jsonrpc = "2.0"
+
+INFO = 'INFO'
+ERROR = 'ERROR'
+ERROR = 'CRITICAL'
+METHOD = "method"
+PARAMS = "params"
+
+INVALID_PARAMS = -32602
+INTERNAL_ERROR = -32603
+
+def log(msg, level=ERROR):
+    payload = log_payload(msg, level=level)
+    ewrite_payload(payload)
+    return payload
 
 
-def log(msg, level='ERROR'):
-    sys.stderr.write(json.dumps({'level': level, msg: msg}))
+def log_payload(msg, level=None, data=None):
+    level = ERROR if level is None else level
+    return {'level': level, "msg": msg, "data": data}
+
+
+def ewrite_payload(payload):
+    sys.stderr.write(json.dumps(payload))
     sys.stderr.write('\n')
 
 
-for arg in itertools.islice(sys.argv, 1, -1):
+def write_payload(payload):
+    sys.stdout.write(json.dumps(payload))
+    sys.stdout.write('\n')
+
+
+def error_obj(argv, code, message, data=None):
+    if data is None:
+        data = {}
+
+    data['argv'] = argv
+
+    return {
+        "code": code,
+        "message": message,
+        "data": data,
+    }
+
+
+def parse_arg(arg):
+    """Parse the argument and return (type, value)"""
     if arg.startswith("--"):
         param_value = arg.split('=', maxsplit=1)
-        if len(param_value) == 1:
+        if len(param_value) != 2:
+            return ERROR, "params must be of the form --key=<json string>. Got: {}".format(arg)
+        param, jsonstr = param_value
+
+        try:
+            value = json.loads(jsonstr)
+        except json.SONDecodeError as e:
+            return ERROR, 'arg {} did not parse: {}'.format(arg, e)
+
+        return PARAMS, (param, value)
+
+    if arg.startswith('rpc.'):
+        return ERROR, "method must not start with \'rpc.\': {}".format(arg)
+
+    return METHOD, arg
+
+
+def main(argv):
+    errors = []
+
+    method = None
+    params = {}
+
+    for arg in itertools.islice(argv, 1, -1):
+        ty, obj = parse_arg(arg)
+        if ty is METHOD:
+            if method is None:
+                method = obj
+            else:
+                errors.append(
+                    log("Found a second method specified: {}".format(obj)))
+        elif ty is PARAMS:
+            param, value = ty
+
+            if param in params:
+                errors.append(
+                    log('found at least two params with same key: {}'.format(param)))
+            else:
+                params[param] = value
+        elif ty is ERROR:
+            errors.append(log(obj))
+        else:
+            err = error_obj(
+                argv=argv,
+                code=INTERNAL_ERROR,
+                message="unknown type",
+                data={'type': ty},
+            )
+            write_payload(err)
+            return 1
+
+    if not method:
+        errors.append(log("no method found"))
+
+    if errors:
+        err = error_obj(
+            argv=argv,
+            code=INVALID_PARAMS,
+            message="errors encountered when parsing arguments",
+            data={"errors": errors}
+        )
+        write_payload(err)
+        return 2
+
+    write_payload({
+        "jsonrpc": "2.0",
+        "method": method,
+        "params": params,
+    })
+    return 0
+
+
+if __name__ == '__main__':
+    main(sys.argv)
+
