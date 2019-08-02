@@ -20,7 +20,7 @@ def error_obj(argv, code, message, data=None):
     if data is None:
         data = {}
     data['argv'] = argv
-    return jshlib.Error(code=code, message=message, data=data).serialize()
+    return jshlib.Error(code=code, message=message, data=data)
 
 
 def parse_arg(arg):
@@ -60,17 +60,17 @@ def _main(argv):
                 method = obj
             else:
                 errors.append(
-                    log("Found a second method specified: {}".format(obj)))
+                    jshlib.log("Found a second method specified: {}".format(obj)))
         elif ty is jshlib.PARAMS:
             param, value = obj
 
             if param in params:
                 errors.append(
-                    log('found at least two params with same key: {}'.format(param)))
+                    jshlib.log('found at least two params with same key: {}'.format(param)))
             else:
                 params[param] = value
         elif ty is jshlib.ERROR:
-            errors.append(log(obj))
+            errors.append(jshlib.log(obj))
         else:
             err = error_obj(
                 argv=argv,
@@ -78,11 +78,11 @@ def _main(argv):
                 message="unknown type",
                 data={'type': ty},
             )
-            jshlib.write_payload(err)
+            jshlib.dump_stdout(err)
             return 1
 
     if not method:
-        errors.append(log("no method found"))
+        errors.append(jshlib.log("no method found"))
 
     if errors:
         err = error_obj(
@@ -91,24 +91,23 @@ def _main(argv):
             message="errors encountered when parsing arguments",
             data={"errors": errors}
         )
-        jshlib.write_payload(err)
+        jshlib.dump_stdout(err)
         return 1
 
     request = jshlib.Request(method=method, params=params)
 
-    jshlib.write_payload(request.serialize())
+    jshlib.dump_stdout(request)
     return 0
 
 
 def main(argv):
     try:
-        _main(argv)
+        return _main(argv)
     except Exception as e:
         err = jshlib.Error.internal_exc(e)
-        jshlib.write_payload(err.serialize())
+        jshlib.dump_stdout(err)
         return 1
 
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
-

@@ -7,6 +7,7 @@ import traceback
 CODE = 'code'
 DATA = 'data'
 METHOD = 'method'
+MESSAGE = 'message'
 JSONRPC = 'jsonrpc'
 JSONRPC_VALUE = '2.0'
 PARAMS = 'params'
@@ -68,7 +69,14 @@ def error(code, message, data=None):
     }
 
 
-class Request:
+class Serializable:
+    def serialize(self):
+        raise TypeError("Must override serialize")
+
+
+
+
+class Request(Serializable):
     def __init__(self, method, params):
         self.method = method
         self.params = params
@@ -77,7 +85,7 @@ class Request:
         return request(method=self.method, params=self.params)
 
 
-class Error(Exception):
+class Error(Exception, Serializable):
     PARSE_ERROR = -32700
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601
@@ -91,13 +99,13 @@ class Error(Exception):
         self.data = data
 
     @classmethod
-    def internal_exc(self, exc, tb=True):
+    def internal_exc(cls, exc, tb=True):
         """Create an internal error, possibly from another exc.
 
         If tb, the exception traceback will be added as ``data``.
         """
         data = None
-        message = str(exc)
+        message = repr(exc)
         if tb:
             data = traceback.format_exc().split('\n')
         return cls(code=cls.INTERNAL_ERROR, message=message, data=data)
@@ -106,22 +114,30 @@ class Error(Exception):
         return error(code=self.code, message=self.message, data=self.data)
 
 
-def log(msg, level=ERROR):
-    payload = log_payload(msg, level=level)
-    ewrite_payload(payload)
+def log(msg, lvl=ERROR):
+    """Log the message at appropriate lvl to stderr and return the object."""
+    payload = log_payload(msg, lvl=lvl)
+    dump_stderr(payload)
     return payload
 
 
-def log_payload(msg, level=None, data=None):
-    level = ERROR if level is None else level
-    return {'level': level, "msg": msg, "data": data}
+def log_payload(msg, lvl=None, data=None):
+    lvl = ERROR if lvl is None else lvl
+    out = {'lvl': lvl, "msg": msg}
+    if data:
+        out['data'] = data
+    return out
 
 
-def ewrite_payload(payload):
+def dump_stderr(payload):
+    if isinstance(payload, Serializable):
+        payload = payload.serialize()
     sys.stderr.write(json.dumps(payload))
     sys.stderr.write('\n')
 
 
-def write_payload(payload):
+def dump_stdout(payload):
+    if isinstance(payload, Serializable):
+        payload = payload.serialize()
     sys.stdout.write(json.dumps(payload))
     sys.stdout.write('\n')

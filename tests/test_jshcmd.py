@@ -27,21 +27,26 @@ def call_jsh(args):
 
     stdout, stderr = p.communicate()
 
-    print(stderr)
-    errors = convert_stderr(stderr)
+    logs = convert_stderr(stderr)
+    result = json.loads(stdout)
 
-    return json.loads(stdout), errors
+    return p.returncode, result, logs
+
+
+def error_pop_data_logs(error):
+    return error.pop(jshlib.DATA)['errors']
 
 
 class TestJsh(unittest.TestCase):
     def test_method(self):
-        result, logs = call_jsh(['foo'])
+        rc, result, logs = call_jsh(['foo'])
         expected = jshlib.request('foo')
         assert expected == result
         assert [] == logs
+        assert rc == 0
 
     def test_simple_params(self):
-        result, logs = call_jsh([
+        rc, result, logs = call_jsh([
             'foo-bar',
             '--boolean=true',
             '--string="foo bar"',
@@ -57,3 +62,27 @@ class TestJsh(unittest.TestCase):
         expected = jshlib.request(method='foo-bar', params=params)
         assert expected == result
         assert [] == logs
+        assert rc == 0
+
+    def test_no_method(self):
+        rc, result, logs = call_jsh([
+            '--boolean=true',
+        ])
+
+        expected_logs = [
+            {
+                'lvl': 'ERROR',
+                'msg': 'no method found'
+            },
+        ]
+
+        expected = {
+            jshlib.CODE: jshlib.Error.INVALID_PARAMS,
+            jshlib.MESSAGE: 'errors encountered when parsing arguments',
+        }
+        result_logs = error_pop_data_logs(result)
+
+        assert expected == result
+        assert expected_logs == result_logs
+        assert expected_logs == logs
+        assert rc == 1
