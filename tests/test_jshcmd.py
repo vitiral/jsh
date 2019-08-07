@@ -7,6 +7,7 @@ import jshlib
 from pprint import pprint
 
 TESTS = os.path.dirname(os.path.abspath(__file__))
+ECHO = os.path.join(TESTS, 'echo')
 REPO = os.path.dirname(TESTS)
 JSH = os.path.join(REPO, 'bin', 'jsh')
 
@@ -175,3 +176,24 @@ class TestJsh(unittest.TestCase):
         assert expected_logs == result_logs
         assert expected_logs == logs
         assert rc == 1
+
+
+class TestRunJsh(unittest.TestCase):
+    def test_echo_method_only(self):
+        request = jshlib.Request("echo")
+        returncode, outputs, logs = jshlib.run_jsh(ECHO, request.method)
+
+        assert [] == outputs
+        assert [request.serialize()] == logs
+        assert 0 == returncode
+
+    def test_echo_all(self):
+        request = jshlib.Request("echo", {"testing": "true"})
+        inputs = ["foo"]
+        returncode, outputs, logs = jshlib.run_jsh(
+            ECHO, request.method, request.params, inputs=inputs
+        )
+
+        assert ["foo"] == outputs
+        assert [request.serialize()] == logs
+        assert 0 == returncode

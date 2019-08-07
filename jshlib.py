@@ -44,7 +44,7 @@ _DIGITS.add('.')
 _CURLY = {'{', '}'}
 _BRACKET = {'[', ']'}
 
-def run_jsh(cmd, method, params, inputs=None):
+def run_jsh(cmd, method, params=None, inputs=None):
     """Run a Jsh process, blocking until it is complete.
 
     `inputs` can be a list of serializable values to dump into the stream.
@@ -55,7 +55,7 @@ def run_jsh(cmd, method, params, inputs=None):
     outputs: list of python objects from stdout
     logs: list of python objects from stderr
     """
-
+    inputs = inputs or ""
     p = PopenJsh.run_jsh(cmd=cmd, method=method, params=params)
     outputs, logs = p.communicate(inputs=inputs)
     return p.returncode, outputs, logs
@@ -77,7 +77,7 @@ class PopenJsh(subprocess.Popen):
     def run_jsh(cls,
                 cmd,
                 method,
-                params,
+                params=None,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -99,14 +99,19 @@ class PopenJsh(subprocess.Popen):
         """
 
         if inputs:
-            strinput = b'\n'.join(json.dumps(v) for v in inputs)
+            strinput = '\n'.join(json.dumps(v) for v in inputs)
+            if sys.version_info[0] >= 3:
+                strinput = strinput.encode('utf-8')
+
         else:
             strinput = None
 
         stdout, stderr = super(PopenJsh, self).communicate(strinput)
+        if sys.version_info[0] >= 3:
+            stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
 
-        outputs = load_json_iter(stdout)
-        logs = load_json_iter(stderr)
+        outputs = list(load_json_iter(stdout))
+        logs = list(load_json_iter(stderr))
         return outputs, logs
 
 
@@ -162,7 +167,7 @@ class Serializable:
 
 class Request(Serializable):
     """Standard JSON-RPC Request object."""
-    def __init__(self, method, params):
+    def __init__(self, method, params=None):
         self.method = method
         self.params = params
 

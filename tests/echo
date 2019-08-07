@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+"""
+Simple jsh echo-like script. Echo's the arguments received to stderr and the
+inputs received to stdout
+"""
+
+# pylint: disable=invalid-name
+
+from __future__ import unicode_literals
+import sys
+import jshlib
+
+
+try:
+    request = jshlib.parse_jsh_argv(sys.argv)
+    jshlib.dump_stderr(request)
+
+    for v in jshlib.load_json_iter(sys.stdin):
+        jshlib.dump_stdout(v)
+except Exception as exc:
+    jshlib.dump_stderr(jshlib.Error.internal_exc(exc))
+    sys.exit(1)
+
+sys.exit(0)
