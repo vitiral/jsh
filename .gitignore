@@ -2,4 +2,4 @@ py2/
 py3/
 pycheck/
 dist/
-artifact_py.egg-info/
+jshlib.egg-info/
