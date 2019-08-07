@@ -22,7 +22,14 @@ def convert_stderr(stderr):
 
 def call_jsh(args):
     args = [JSH] + args
-    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    env = {
+        "PYTHONPATH": "{}:{}".format(REPO, os.environ.get("PYTHONPATH", ""))
+    }
+
+    p = subprocess.Popen(args,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         env=env)
 
     stdout, stderr = p.communicate()
 

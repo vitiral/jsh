@@ -3,3 +3,4 @@ py3/
 pycheck/
 dist/
 jshlib.egg-info/
+*.pyc

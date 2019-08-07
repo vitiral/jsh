@@ -22,6 +22,7 @@ jsh: JSON-RPC standards for the shell
 from __future__ import unicode_literals
 import sys
 import json
+import subprocess
 import traceback
 import io
 
@@ -42,6 +43,72 @@ _DIGITS = {str(n) for n in range(10)}
 _DIGITS.add('.')
 _CURLY = {'{', '}'}
 _BRACKET = {'[', ']'}
+
+def run_jsh(cmd, method, params, inputs=None):
+    """Run a Jsh process, blocking until it is complete.
+
+    `inputs` can be a list of serializable values to dump into the stream.
+
+    Returns (returncode, outputs, logs)
+
+    rc: integer return code
+    outputs: list of python objects from stdout
+    logs: list of python objects from stderr
+    """
+
+    p = PopenJsh.run_jsh(cmd=cmd, method=method, params=params)
+    outputs, logs = p.communicate(inputs=inputs)
+    return p.returncode, outputs, logs
+
+
+class PopenJsh(subprocess.Popen):
+    """Run a Jsh process in the background using Popen.
+
+    Use the `run_jsh` classmethod to start it, or construct your own Popen.
+
+    This is similar to Popen but provides a generator for reading the logs and
+    data.
+
+    TODO:
+    Currently this only provides the `communicate` method. Eventually it might
+    implement the generator interface (in python3 only).
+    """
+    @classmethod
+    def run_jsh(cls,
+                cmd,
+                method,
+                params,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                **kwargs):
+        r = request(method=method, params=params)
+        args = [cmd, "--jsh-request={}".format(json.dumps(r))]
+
+        return cls(args=args,
+                   stdin=stdin,
+                   stderr=stderr,
+                   stdout=stdout,
+                   **kwargs)
+
+    def communicate(self, inputs=None):
+        """Communicate with the jsh process, returning the deserialized
+        stdout, stderr.
+
+        `inputs` can be a list of serializable values to dump into the stream.
+        """
+
+        if inputs:
+            strinput = b'\n'.join(json.dumps(v) for v in inputs)
+        else:
+            strinput = None
+
+        stdout, stderr = super(PopenJsh, self).communicate(strinput)
+
+        outputs = load_json_iter(stdout)
+        logs = load_json_iter(stderr)
+        return outputs, logs
+
 
 
 def parse_jsh_argv(argv):
